@@ -1,3 +1,18 @@
+# Reproduction code of ConViT for course EECS 6322
+## Model Components to Implement
+
+- The core component of ConViT is gated positional self-attention (GPSA), and ConViT is actually realized by using GPSA to replace the regular self-attention (SA) in ViT. **Therefore, we will focus on the implementation of GPSA**, while the rest of the model and training code will try to keep the same with the official version, so as to retain the maximum experiment reproducibility as well.
+- Moreover, **visualization code** and **ablation study code** for experiments will be added.
+- 
+## Experiments to be conducted
+The following experiments are all consistent with those conducted in the paper.
+
+1. Reproducing Top-1 and Top-5 based on different sizes of ConViT, trained from scratch, using ImageNet-1k dataset. (Refer to Table 1 in the paper)
+2. Reproducing Top-1 and Top-5 using different scales of subsampled versions of ImageNet-1k. (Refer to Table 2 in the paper)
+3. Reproducing non-locality visualization results. (Refer to Figure 5 in the paper)
+4. Reproducing ablation results. (Refer to Table 3 in the paper)
+
+# (Below is the original README content)
 # ConViT : Vision Transformers with Convolutional Inductive Biases
 
 This repository contains PyTorch code for ConViT. It builds on code from the [Data-Efficient Vision Transformer](https://github.com/facebookresearch/deit) and from [timm](https://github.com/rwightman/pytorch-image-models).
