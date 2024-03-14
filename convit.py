@@ -5,7 +5,10 @@
 # LICENSE file in the root directory of this source tree.
 #
 
-'''These modules are adapted from those of timm, see
+'''
+See class 'GPSA' for implement details.
+
+These modules are adapted from those of timm, see
 https://github.com/rwightman/pytorch-image-models/blob/master/timm/models/vision_transformer.py
 '''
 
@@ -52,6 +55,21 @@ class Mlp(nn.Module):
 
 
 class GPSA(nn.Module):
+    """
+    How GPSA works:
+        Normally, in multi-head self-attention, the attention score of q_h, k_h ('h' refers to 'head') is 
+        
+                        A_ij = softmax(q_h.T * k_h / sqrt(dim)), 
+                        
+        but for GPSA, a relative positional encoding r_ij and trainable embedding v_pos is added to bring 
+        features of convolutional layers to attention mechanism.
+        Additionally, GPSA also uses a gating parameter \lambda to control the convolutional inductive bias.
+        In all, the gated positional self-attention (GPSA) can be expressed as 
+        
+                    A_ij = sigmoid(1-\lambda) * softmax(q_h.T * k_h / sqrt(dim)) 
+                            + sigmoid(\lambda) * softmax(v_pos.T * r_ij)
+        
+    """
     def __init__(self, dim, num_heads=8, qkv_bias=False, qk_scale=None, attn_drop=0., proj_drop=0.,
                  locality_strength=1., use_local_init=True):
         super().__init__()

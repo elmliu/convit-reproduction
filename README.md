@@ -3,7 +3,8 @@
 
 - The core component of ConViT is gated positional self-attention (GPSA), and ConViT is actually realized by using GPSA to replace the regular self-attention (SA) in ViT. **Therefore, we will focus on the implementation of GPSA**, while the rest of the model and training code will try to keep the same with the official version, so as to retain the maximum experiment reproducibility as well.
 - Moreover, **visualization code** and **ablation study code** for experiments will be added.
-- 
+- `GPSA` is implemented in file `convit.py`.
+
 ## Experiments to be conducted
 The following experiments are all consistent with those conducted in the paper.
 
