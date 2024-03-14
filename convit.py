@@ -78,8 +78,8 @@ class GPSA(nn.Module):
         head_dim = dim // num_heads
         self.scale = qk_scale or head_dim ** -0.5
 
-        self.qk = nn.Linear(dim, dim * 2, bias=qkv_bias)       
-        self.v = nn.Linear(dim, dim, bias=qkv_bias)       
+        self.W_qk = nn.Linear(dim, dim * 2, bias=qkv_bias)       
+        self.W_v = nn.Linear(dim, dim, bias=qkv_bias)       
         
         self.attn_drop = nn.Dropout(attn_drop)
         self.proj = nn.Linear(dim, dim)
@@ -111,7 +111,7 @@ class GPSA(nn.Module):
         batch_size, num_patches, embed_dim = x.shape
 
         # Reshape x to get multi-head query and keys
-        qk = self.qk(x).reshape(batch_size, num_patches, 2, self.num_heads, embed_dim // self.num_heads)
+        qk = self.W_qk(x).reshape(batch_size, num_patches, 2, self.num_heads, embed_dim // self.num_heads)
         q, k = qk[:, :, 0], qk[:, :, 1]
 
         # Calculate scores of relative positions
@@ -135,9 +135,20 @@ class GPSA(nn.Module):
         return gating_attn
         
     def forward(self, x):
-        B, N, C = x.shape
-        if self.relative_pos == None or self.relative_pos.shape[1] != N:
-            self.relative_pos = self.get_relative_pos(N)
+        batch_size, num_patches, embed_dim = x.shape
+        if self.relative_pos == None or self.relative_pos.shape[1] != num_patches:
+            self.relative_pos = self.get_relative_pos(num_patches)
+            
+        # Get attention scores with gated relative position scores.
+        attn = self.cal_attn_scores(x)
+        
+        # Reshape value for multi-head attention.
+        v = self.W_v(x).reshape(batch_size, num_patches, self.num_heads, embed_dim // self.num_heads).permute(0, 2, 1, 3)
+        
+        y = torch.matmul(attn, v).transpose(1, 2).reshape(batch_size, num_patches, embed_dim)
+        y = self.proj(y)
+        
+        return y
     
     def get_relative_pos(self, n_patch):
         img_size = int(n_patch**0.5)
