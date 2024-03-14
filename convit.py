@@ -147,6 +147,7 @@ class GPSA(nn.Module):
         
         y = torch.matmul(attn, v).transpose(1, 2).reshape(batch_size, num_patches, embed_dim)
         y = self.proj(y)
+        y = self.proj_drop(y)
         
         return y
     
