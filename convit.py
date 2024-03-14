@@ -6,7 +6,7 @@
 #
 
 '''
-See class 'GPSA' for implement details.
+See class 'GPSA' for implemention details.
 
 These modules are adapted from those of timm, see
 https://github.com/rwightman/pytorch-image-models/blob/master/timm/models/vision_transformer.py
