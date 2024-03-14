@@ -87,6 +87,9 @@ class GPSA(nn.Module):
         self.proj_drop = nn.Dropout(proj_drop)
         self.locality_strength = locality_strength
         self.gating_param = nn.Parameter(torch.ones(self.num_heads))
+        
+        self.relative_pos = None
+        
         self.apply(self._init_weights)
         if use_local_init:
             self.local_init(locality_strength=locality_strength)
@@ -100,9 +103,49 @@ class GPSA(nn.Module):
             nn.init.constant_(m.bias, 0)
             nn.init.constant_(m.weight, 1.0)
         
-    def forward(self, x):
-        pass
+    def cal_attn_scores(self, x):
+        """
+            This function realizes the main contributions of GPSA, since GPSA mainly brings a new way to
+            calculate attention scores by incorporating positional encoding 'r' and trainable embedding 'v'.
+        """
+        batch_size, num_patches, embed_dim = x.shape
 
+        # Reshape x to get multi-head query and keys
+        qk = self.qk(x).reshape(batch_size, num_patches, 2, self.num_heads, embed_dim // self.num_heads)
+        q, k = qk[:, :, 0], qk[:, :, 1]
+
+        # Calculate scores of relative positions
+        # self.relative_pos shape: (1, n_patch, n_patch, 3)
+        pos_score = self.relative_pos.expand(batch_size, -1, -1, -1)    # Expand relative_pos on first dimension
+        pos_score = self.pos_proj(pos_score).permute(0, 3, 1, 2)
+        pos_score = pos_score.softmax(dim=-1)
+
+        # Calculate scores of attentions
+        attn_score = torch.matmul(q, k.transpose(-2, -1)) * self.scale
+        attn_score = attn_score.softmax(dim=-1)
+
+        # Fuse pos_score and attn_score with gating controls
+        gating = self.gating_param.view(1, -1, 1, 1)    # shape: (1, num_heads, 1, 1)
+        gating_attn = (1. - torch.sigmoid(gating)) * attn_score + \
+                        torch.sigmoid(gating) * pos_score
+        gating_attn = gating_attn / (gating_attn.sum(dim=-1).unsqueeze(-1))
+
+
+        return gating_attn
+        
+    def forward(self, x):
+        B, N, C = x.shape
+        if self.relative_pos == None or self.relative_pos.shape[1] != N:
+            self.relative_pos = self.get_relative_pos(N)
+    
+    def get_relative_pos(self, n_patch):
+        img_size = int(n_patch**0.5)
+        relative_pos = torch.zeros(1, n_patch, n_patch, 3, device=self.qk.weight.device)
+        ind = torch.arange(img_size, device=self.qk.weight.device)
+        relative_pos[:, :, :, 0] = (ind.view(1, -1) - ind.view(-1, 1)).repeat(img_size, img_size).unsqueeze(0)
+        relative_pos[:, :, :, 1] = (ind.repeat(img_size).view(-1, 1) - ind.repeat(img_size)).repeat(1, img_size).unsqueeze(0)
+        relative_pos[:, :, :, 2] = (relative_pos[:, :, :, 0]**2 + relative_pos[:, :, :, 1]**2).unsqueeze(0)
+        return relative_pos.to(self.qk.weight.device)
  
 class MHSA(nn.Module):
     def __init__(self, dim, num_heads=8, qkv_bias=False, qk_scale=None, attn_drop=0., proj_drop=0.):
