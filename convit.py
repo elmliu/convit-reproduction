@@ -130,7 +130,8 @@ class GPSA(nn.Module):
                         torch.sigmoid(gating) * pos_score
         gating_attn = gating_attn / (gating_attn.sum(dim=-1).unsqueeze(-1))
 
-
+        # Add attention drop
+        gating_attn = self.attn_drop(gating_attn)
         return gating_attn
         
     def forward(self, x):
