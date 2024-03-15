@@ -95,6 +95,19 @@ class GPSA(nn.Module):
             self.local_init(locality_strength=locality_strength)
 
     def _init_weights(self, m):
+        """
+            Initialize the weights of a module.
+
+            Parameters
+            ----------
+            m : `torch.nn.Module`
+                The module to initialize the weights of.
+
+            Returns
+            -------
+            None
+
+        """
         if isinstance(m, nn.Linear):
             trunc_normal_(m.weight, std=.02)
             if isinstance(m, nn.Linear) and m.bias is not None:
@@ -135,7 +148,16 @@ class GPSA(nn.Module):
         return gating_attn
         
     def forward(self, x):
+        """
+        Parameters:
+            x (torch.Tensor): input tensor of shape (batch_size, num_patches, embed_dim)
+
+        Returns:
+            torch.Tensor: output tensor of shape (batch_size, embed_dim)
+        """
         batch_size, num_patches, embed_dim = x.shape
+        
+        # Prepare relative posistion encodings if neccessary
         if self.relative_pos == None or self.relative_pos.shape[1] != num_patches:
             self.relative_pos = self.get_relative_pos(num_patches)
             
@@ -145,6 +167,7 @@ class GPSA(nn.Module):
         # Reshape value for multi-head attention.
         v = self.W_v(x).reshape(batch_size, num_patches, self.num_heads, embed_dim // self.num_heads).permute(0, 2, 1, 3)
         
+        # Use value and fused attention scores to update attention outputs
         y = torch.matmul(attn, v).transpose(1, 2).reshape(batch_size, num_patches, embed_dim)
         y = self.proj(y)
         y = self.proj_drop(y)
@@ -152,13 +175,47 @@ class GPSA(nn.Module):
         return y
     
     def get_relative_pos(self, n_patch):
+        # Calculate the image size from the number of patches
         img_size = int(n_patch**0.5)
+        # Initialize a tensor to store relative positions
         relative_pos = torch.zeros(1, n_patch, n_patch, 3, device=self.qk.weight.device)
+        # Generate indices for relative positions
         ind = torch.arange(img_size, device=self.qk.weight.device)
+        
+        # Compute relative positions in the x-axis
         relative_pos[:, :, :, 0] = (ind.view(1, -1) - ind.view(-1, 1)).repeat(img_size, img_size).unsqueeze(0)
+        # Compute relative positions in the y-axis
         relative_pos[:, :, :, 1] = (ind.repeat(img_size).view(-1, 1) - ind.repeat(img_size)).repeat(1, img_size).unsqueeze(0)
+        # Compute the squared Euclidean distance for each relative position
         relative_pos[:, :, :, 2] = (relative_pos[:, :, :, 0]**2 + relative_pos[:, :, :, 1]**2).unsqueeze(0)
+        
         return relative_pos.to(self.qk.weight.device)
+    
+    def local_init(self, locality_strength=1.):
+        # Set identity matrix to the weight of v
+        self.v.weight.data.copy_(torch.eye(self.dim))
+        
+        # Calculate locality distance
+        locality_distance = 1 # max(1, 1 / locality_strength**0.5)
+        
+        # Determine kernel size based on the number of heads
+        kernel_size = int(self.num_heads**0.5)
+        center = (kernel_size - 1) / 2 if kernel_size % 2 == 0 else kernel_size // 2
+        
+        # Loop over kernel elements
+        for row in range(kernel_size):
+            for col in range(kernel_size):
+                # Calculate position in the kernel
+                position = row + kernel_size * col
+                
+                # Set weight data for positional projection
+                self.pos_proj.weight.data[position, 2] = -1
+                self.pos_proj.weight.data[position, 1] = 2 * (row - center) * locality_distance
+                self.pos_proj.weight.data[position, 0] = 2 * (col - center) * locality_distance
+                
+        # Scale the weights by locality strength
+        self.pos_proj.weight.data *= locality_strength
+
  
 class MHSA(nn.Module):
     def __init__(self, dim, num_heads=8, qkv_bias=False, qk_scale=None, attn_drop=0., proj_drop=0.):
