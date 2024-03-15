@@ -174,6 +174,17 @@ class GPSA(nn.Module):
         
         return y
     
+    def get_attention_map(self, x, return_map = False):
+
+        attn_map = self.get_attention(x).mean(0) # average over batch
+        distances = self.rel_indices.squeeze()[:,:,-1]**.5
+        dist = torch.einsum('nm,hnm->h', (distances, attn_map))
+        dist /= distances.size(0)
+        if return_map:
+            return dist, attn_map
+        else:
+            return dist
+    
     def get_relative_pos(self, n_patch):
         # Calculate the image size from the number of patches
         img_size = int(n_patch**0.5)
