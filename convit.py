@@ -120,6 +120,16 @@ class GPSA(nn.Module):
         """
             This function realizes the main contributions of GPSA, since GPSA mainly brings a new way to
             calculate attention scores by incorporating positional encoding 'r' and trainable embedding 'v'.
+            
+            Parameters
+            ----------
+            x : torch.Tensor
+                input tensor of shape (batch_size, num_patches, embed_dim)
+
+            Returns
+            -------
+            torch.Tensor
+                output tensor of shape (batch_size, embed_dim)
         """
         batch_size, num_patches, embed_dim = x.shape
 
@@ -186,6 +196,13 @@ class GPSA(nn.Module):
             return dist
     
     def get_relative_pos(self, n_patch):
+        """
+         Parameters:
+            n_patch (int): Total patch number.
+
+        Returns:
+            torch.Tensor: The relative positional encoding. Shape is (1, n_patch, n_patch, 3).
+        """
         # Calculate the image size from the number of patches
         img_size = int(n_patch**0.5)
         # Initialize a tensor to store relative positions
