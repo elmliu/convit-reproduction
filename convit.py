@@ -185,7 +185,9 @@ class GPSA(nn.Module):
         return y
     
     def get_attention_map(self, x, return_map = False):
-
+        """
+            This function implements the calculation of 'non-locality' in Section 4 of the paper.
+        """
         attn_map = self.get_attention(x).mean(0) # average over batch
         distances = self.rel_indices.squeeze()[:,:,-1]**.5
         dist = torch.einsum('nm,hnm->h', (distances, attn_map))

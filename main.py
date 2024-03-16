@@ -303,7 +303,6 @@ def main(args):
         print(f"Accuracy of the network on the {len(dataset_val)} test images: {test_stats['acc1']:.1f}%")
         return
 
-
     print("Start training")
     start_time = time.time()
     max_accuracy = 0.0
