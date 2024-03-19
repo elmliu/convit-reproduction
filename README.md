@@ -4,6 +4,8 @@
 - The core component of ConViT is gated positional self-attention (GPSA), and ConViT is actually realized by using GPSA to replace the regular self-attention (SA) in ViT. **Therefore, we will focus on the implementation of GPSA**, while the rest of the model and training code will try to keep the same with the official version, so as to retain the maximum experiment reproducibility as well.
 - Moreover, **visualization code** and **ablation study code** for experiments will be added.
 - `GPSA` is implemented in file `convit.py`.
+- For details see the [ConViT paper](https://arxiv.org/abs/2103.10697) by Stéphane d'Ascoli, Hugo Touvron, Matthew Leavitt, Ari Morcos, Giulio Biroli and Levent Sagun.
+
 
 ## Experiments to be conducted
 The following experiments are all consistent with those conducted in the paper.
@@ -13,25 +15,15 @@ The following experiments are all consistent with those conducted in the paper.
 3. Reproducing non-locality visualization results. (Refer to Figure 5 in the paper)
 4. Reproducing ablation results. (Refer to Table 3 in the paper)
 
-# (Below is the original README content)
-# ConViT : Vision Transformers with Convolutional Inductive Biases
+## File Contents
+- `main.py`: Includes experiment configurations and main training and testing code.
+- `convit.py`: Includes ConViT implementations (our main reproduction work).
+- `datasets.py`: Includes dataset classes and relevant tools.
+- `models.py`: Includes model classes of different sizes of ConViT.
+- `engine.py`: Includes training and testing functions.
+- `fig_helpers.ipynb`: Loads local training log file and compute and visualize non-localities (our main reproduction work).
 
-This repository contains PyTorch code for ConViT. It builds on code from the [Data-Efficient Vision Transformer](https://github.com/facebookresearch/deit) and from [timm](https://github.com/rwightman/pytorch-image-models).
-
-For details see the [ConViT paper](https://arxiv.org/abs/2103.10697) by Stéphane d'Ascoli, Hugo Touvron, Matthew Leavitt, Ari Morcos, Giulio Biroli and Levent Sagun.
-
-If you use this code for a paper please cite:
-
-```
-@article{d2021convit,
-  title={ConViT: Improving Vision Transformers with Soft Convolutional Inductive Biases},
-  author={d'Ascoli, St{\'e}phane and Touvron, Hugo and Leavitt, Matthew and Morcos, Ari and Biroli, Giulio and Sagun, Levent},
-  journal={arXiv preprint arXiv:2103.10697},
-  year={2021}
-}
-```
-
-# Usage
+## Usage
 
 Install PyTorch 1.7.0+ and torchvision 0.8.1+ and [pytorch-image-models 0.3.2](https://github.com/rwightman/pytorch-image-models):
 
@@ -90,6 +82,3 @@ To train ConViT-base on ImageNet on 2 nodes with 8 gpus each for 300 epochs:
 ```
 python run_with_submitit.py --model convit_base --data-path /path/to/imagenet
 ```
-
-# License
-The majority of this repository is released under the Apache 2.0 license as found in the [LICENSE](LICENSE) file.
