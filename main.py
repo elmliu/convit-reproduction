@@ -347,7 +347,10 @@ def main(args):
         batch = model_without_ddp.patch_embed(batch)
         for l in range(len(model_without_ddp.blocks)):
             attn =  model_without_ddp.blocks[l].attn
+            
+            # nonlocality[l] shape: (n_head, )
             nonlocality[l] = attn.get_attention_map(batch).detach().cpu().numpy().tolist()
+            
             if 'convit' in args.model and l<args.local_up_to_layer:
                 p = attn.pos_proj.weight
                 span = -1/p.data[:,-1]
@@ -363,12 +366,14 @@ def main(args):
                      **{f'distances_{k}': v for k, v in distances.items()},
                      **{f'gating_params_{k}': v for k, v in gating_params.items()},
                      'epoch': epoch,
+                     'nonlocality_len': len(model_without_ddp.blocks),  # Newly added.
                      'n_parameters': n_parameters}
         print(log_stats)
 
         if args.output_dir and utils.is_main_process():
-            with (output_dir / "log.txt").open("a") as f:
-                f.write(json.dumps(log_stats) + "\n")
+            current_time = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+            with (output_dir / current_time +  ".txt").open("a") as f:
+                f.write(json.dumps(log_stats) + '\n')
 
     total_time = time.time() - start_time
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))

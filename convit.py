@@ -129,7 +129,7 @@ class GPSA(nn.Module):
             Returns
             -------
             torch.Tensor
-                output tensor of shape (batch_size, embed_dim)
+                output tensor of shape (batch_size, num_heads, num_patches, num_patches)
         """
         batch_size, num_patches, embed_dim = x.shape
 
@@ -184,11 +184,22 @@ class GPSA(nn.Module):
         
         return y
     
+    
     def get_attention_map(self, x, return_map = False):
         """
             This function implements the calculation of 'non-locality' in Section 4 of the paper.
+        
+            Parameters
+            ----------
+            x : torch.Tensor
+                input tensor of shape (batch_size, num_patches, embed_dim)
+
+            Returns
+            -------
+            torch.Tensor
+                output tensor of shape (num_heads, )
         """
-        attn_map = self.get_attention(x).mean(0) # average over batch
+        attn_map = self.cal_attn_scores(x).mean(0) # average over batch. shape: (num_heads, num_patches, num_patches)
         distances = self.rel_indices.squeeze()[:,:,-1]**.5
         dist = torch.einsum('nm,hnm->h', (distances, attn_map))
         dist /= distances.size(0)
